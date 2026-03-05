@@ -231,10 +231,6 @@ const header = {
 };
 header.init();
 
-
-/**
- * @type {Editor}
- */
 const editor = {
     header: document.querySelector(".editor-content.fixed-col"),
     headers: [],
@@ -364,24 +360,69 @@ const editor = {
                 e.preventDefault();
                 this.pressedQ = false;
             }
-        })
+        });
+        this.update.lastNotes = [...this.notes];
     },
     save() {
         localStorage.setItem("_notes", JSON.stringify(this.notes));
     },
     update() {
         // location.hash = "#" + this.notes.join("/");
-        for (let i = 0; i < this.noteElements.length; i++) {
-            const elements = this.noteElements[i].elements;
-            elements.forEach(e => e.classList.remove("true"));
+        for (let i = 0; i < this.notes.length; i++) {
             const note = this.notes[i];
+            const lnote = this.update.lastNotes[i];
+            if (this.update.lastNotes && (note === lnote)) {
+                continue;
+            }
             if (note > 20) {
-                elements[108 - note].classList.add("true");
+                if (this.update.lastNotes && this.noteElements[i] && (typeof lnote !== "undefined") && lnote > 20) {
+                    document.querySelector(`body > div.editor > div > div:nth-child(${i + 2}) > div:nth-child(${110 - lnote})`).classList.remove("true");
+                }
+                document.querySelector(`body > div.editor > div > div:nth-child(${i + 2}) > div:nth-child(${110 - note})`).classList.add("true");
+            } else {
+                if (this.update.lastNotes && this.noteElements[i] && (typeof lnote !== "undefined") && lnote > 20) {
+                    document.querySelector(`body > div.editor > div > div:nth-child(${i + 2}) > div:nth-child(${110 - lnote})`).classList.remove("true");
+                }
             }
         }
+        this.update.lastNotes = [...this.notes];
         this.save();
     },
-
+    create_callbacks: {
+        pointerdown: function (current, j) {
+            this.notes[current] = j + 21;
+            this.update();
+            this.playNote(j + 21);
+        },
+        contextmenu: function (current, e) {
+            e.preventDefault();
+            this.notes[current] = 0;
+            this.update();
+        },
+        pointerenter: function (current, j) {
+            this.selectRow(j + 21);
+            this.selectCol(current);
+            if (this.pressedS) {
+                this.notes[current] = j + 21;
+                this.update();
+                this.playNote(j + 21);
+            } else if (this.pressedQ) {
+                this.notes[current] = 0;
+                this.update();
+            }
+        },
+        pointerleave: function (current, j) {
+            this.selectRow(j + 21);
+            this.selectCol(current);
+            if (this.pressedS) {
+                this.notes[current] = j + 21;
+                this.update();
+            } else if (this.pressedQ) {
+                this.notes[current] = 0;
+                this.update();
+            }
+        }
+    },
     create(value = 0) {
         const note = value;
         const row = document.createElement("div");
@@ -399,7 +440,7 @@ const editor = {
             this.currentCol(current);
         })
         row.appendChild(el);
-        const noteElements = { parent: row, elements: [] };
+        const noteElements = { parent: null, elements: [] };
         this.noteElements.push(noteElements);
 
         for (let j = 87; j >= 0; j--) {
@@ -408,44 +449,15 @@ const editor = {
             if ((value - 21) === j) {
                 el.classList.add("true");
             }
-            el.addEventListener("pointerdown", () => {
-                this.notes[current] = j + 21;
-                this.update();
-                this.playNote(j + 21);
-            });
-            el.addEventListener("contextmenu", (e) => {
-                e.preventDefault();
-                this.notes[current] = 0;
-                this.update();
-            });
-            el.addEventListener("pointerenter", () => {
-                this.selectRow(j + 21);
-                this.selectCol(current);
-                if (this.pressedS) {
-                    this.notes[current] = j + 21;
-                    this.update();
-                    this.playNote(j + 21);
-                } else if (this.pressedQ) {
-                    this.notes[current] = 0;
-                    this.update();
-                }
-            });
-            el.addEventListener("pointerleave", () => {
-                this.selectRow(j + 21);
-                this.selectCol(current);
-                if (this.pressedS) {
-                    this.notes[current] = j + 21;
-                    this.update();
-                } else if (this.pressedQ) {
-                    this.notes[current] = 0;
-                    this.update();
-                }
-            });
+            el.addEventListener("pointerdown", this.create_callbacks.pointerdown.bind(this, current, j));
+            el.addEventListener("contextmenu", this.create_callbacks.contextmenu.bind(this, current));
+            el.addEventListener("pointerenter", this.create_callbacks.pointerenter.bind(this, current, j));
+            el.addEventListener("pointerleave", this.create_callbacks.pointerleave.bind(this, current, j));
             row.appendChild(el);
-            noteElements.elements.push(el);
+            //noteElements.elements.push(el);
         }
         this.contents.appendChild(row);
-        this.notes.push(note);
+        this.notes.push(Math.max(note, 0));
     },
     current: 0,
     play() {
@@ -486,15 +498,15 @@ const editor = {
     selectCol(col = 0) {
         try { document.querySelector(".editor-content.select").classList.remove("select"); } catch { }
         if (col !== -1) {
-            this.noteElements[col].parent.classList.add("select");
+            document.querySelector("body > div.editor > div > div:nth-child(" + (col + 2) + ")").classList.add("select");
             this.currentC = col;
         }
     },
     currentCol(col = 0) {
         try { document.querySelector(".editor-content.current").classList.remove("current"); } catch { }
         if (col !== -1) {
-            this.noteElements[col].parent.classList.add("current");
-            this.noteElements[col].parent.scrollIntoView({
+            document.querySelector("body > div.editor > div > div:nth-child(" + (col + 2) + ")").classList.add("current");
+            document.querySelector("body > div.editor > div > div:nth-child(" + (col + 2) + ")").scrollIntoView({
                 block: 'nearest',
             });
         }
