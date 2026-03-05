@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>arduino-tone-editor</title>
+</head>
+
+<body>
+    <div class="overlay">
+        <div class="dialog">
+            <h3>ヘッダー・再生関数</h3>
+            <textarea readonly id="c-head"></textarea>
+            <h3>曲</h3>
+            <textarea readonly id="c-body"></textarea>
+        </div>
+    </div>
+    <div class="header">
+        <div class="loadmidi">
+            <label for="loadmidi">MIDIファイルを読み込み<input type="file" name="loadmidi" id="loadmidi" hidden></label>
+        </div>
+        <div class="load">
+            <label for="load">ファイルを読み込み<input type="file" name="load" id="load" hidden></label>
+        </div>
+        <div class="save"><button type="button">ファイルに保存</button></div>
+        <div class="export"><button type="button">Cにエクスポート</button></div>
+        <div class="tempo">
+            <div>テンポ♩=<input type="number" value="120" name="tempo"></div>
+        </div>
+        <div class="play"><button type="button">▶︎Play</button></div>
+        <div class="stop"><button type="button">⬛︎Stop</button></div>
+        <div class="half"><button type="button">1/2倍</button></div>
+        <div class="double"><button type="button">2倍</button></div>
+        <div class="clear"><button type="button">Clear</button></div>
+        <div class="mute">
+            <input type="checkbox">
+        </div>
+    </div>
+    <div class="editor">
+        <div class="editor-contents">
+            <div class="editor-content fixed-col">
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>

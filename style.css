@@ -1,0 +1,186 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+body {
+    font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.overlay {
+    display: none;
+    z-index: 999;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #0008;
+}
+.overlay .dialog{
+    width: fit-content;
+    padding: 10px;
+    margin: auto;
+    background-color: #fff;
+    border: 1px #000 solid;
+}
+
+.overlay .dialog textarea {
+    width: 600px;
+    max-width: 600px;
+    min-width: 600px;
+    height: 300px;
+    max-height: 300px;
+    min-height: 300px;
+}
+
+.header {
+    width: 100vw;
+    height: 50px;
+    display: flex;
+    flex-direction: row;
+}
+
+.header button,
+.header label,
+.header select {
+    margin: 5px;
+    min-height: 35px;
+    padding: 5px;
+    display: inline-block;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    color: #fff;
+    background-color: #2eaeff;
+    border: #0048ff 1px solid;
+    border-radius: 3px;
+}
+
+.header .mute input::after {
+    content: "ミュート🔇";
+    margin: 5px;
+    min-height: 25px;
+    padding: 5px;
+    display: inline-block;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    color: #fff;
+    background-color: #2eaeff;
+    border: #0048ff 1px solid;
+    border-radius: 3px;
+}
+
+.header .mute input:checked:after {
+    content: "解除済み🔈";
+}
+
+.header .tempo div,
+.header .name div {
+    font-size: 13px;
+    padding: 5px;
+    margin: 5px;
+    min-height: 35px;
+    display: inline-block;
+    text-align: center;
+    text-align: center;
+    color: #fff;
+    background-color: #2eaeff;
+    border: #0048ff 1px solid;
+    border-radius: 3px;
+}
+
+.header .name div input {
+    width: 100px;
+    text-align: center;
+    margin-left: 5px;
+}
+
+.header .tempo div input {
+    width: 50px;
+    text-align: center;
+    margin-left: 5px;
+}
+
+.editor {
+    width: 100vw;
+    height: calc(100vh - 50px);
+    overflow: scroll;
+    border: #000 1px solid;
+    border-collapse: collapse;
+}
+
+.editor-contents {
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    flex-direction: row;
+    width: max-content;
+    --height: 22px;
+    --width: 22px;
+}
+
+.editor-content {
+    flex-direction: column;
+    border-collapse: collapse;
+}
+
+.editor-content.select {
+    background-color: lightsalmon !important;
+}
+
+.editor-content.current {
+    background-color: lightgreen !important;
+}
+
+.fixed-row {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #eee;
+}
+
+.fixed-col {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #eee;
+    --width: 180px
+}
+
+.fixed-col .editor-element {
+    display: flex;
+    flex-direction: row;
+}
+
+.fixed-col .editor-element div {
+    width: 60px;
+    height: 22px;
+}
+
+.editor-element {
+    height: var(--height);
+    width: var(--width);
+    border: #ddd 1px solid;
+    border-collapse: collapse;
+}
+
+.editor-element.true {
+    background-color: purple !important;
+}
+
+.editor-element.select {
+    background-color: lightsalmon !important;
+}
+
+.editor-element.current {
+    background-color: lightgreen !important;
+}
