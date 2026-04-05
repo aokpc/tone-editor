@@ -325,12 +325,18 @@ const editor = {
             } else if (e.code === ("ArrowDown")) {
                 e.preventDefault();
                 for (let i = this.currentC; i < this.notes.length; i++) {
+                    if (this.notes[i] === 0) {
+                        continue;
+                    }
                     this.notes[i]--;
                 }
                 this.update();
             } else if (e.code === ("ArrowUp")) {
                 e.preventDefault();
                 for (let i = this.currentC; i < this.notes.length; i++) {
+                    if (this.notes[i] === 0) {
+                        continue;
+                    }
                     this.notes[i]++;
                 }
                 this.update();
@@ -457,7 +463,7 @@ const editor = {
             //noteElements.elements.push(el);
         }
         this.contents.appendChild(row);
-        this.notes.push(Math.max(note, 0));
+        this.notes.push(Math.min(108, Math.max(note, 0)));
     },
     current: 0,
     play() {
