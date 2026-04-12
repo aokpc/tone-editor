@@ -232,46 +232,105 @@ const header = {
 header.init();
 
 const editor = {
-    header: document.querySelector(".editor-content.fixed-col"),
-    headers: [],
-    contents: document.querySelector(".editor-contents"),
+    /**
+     * @type {HTMLCanvasElement}
+     */
+    canvas: document.querySelector(".editor-canvas"),
     notes: [],
-    noteElements: [],
+
+    scroll: [0, 0],
+    select: [0, 0],
+    current: [0, 0],
     audioCtx: null,
     pressedS: false,
     pressedQ: false,
     init() {
-        const div = document.createElement("div");
-        div.className = "editor-element fixed-row";
-        div.textContent = "time";
-        this.header.appendChild(div);
+        this.canvas.width = window.innerWidth * window.devicePixelRatio;
+        this.canvas.height = (window.innerHeight - 50) * window.devicePixelRatio;
 
-        MIDIS.toReversed().forEach(e => {
-            const div = document.createElement("div")
-            div.className = "editor-element"
-            const eng = document.createElement("div")
-            eng.textContent = e.eng[0] + e.octave + (e.eng[1] || "");
-            div.appendChild(eng);
-            const name = document.createElement("div")
-            name.textContent = e.name;
-            div.appendChild(name);
-            if (e.alt) {
-                const alt = document.createElement("div")
-                alt.textContent = e.alt
-                div.appendChild(alt);
+        window.addEventListener("resize", () => {
+            this.canvas.width = window.innerWidth * window.devicePixelRatio;
+            this.canvas.height = (window.innerHeight - 50) * window.devicePixelRatio;
+            this.update();
+        });
+
+        this.canvas.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            this.scroll[0] -= e.deltaX;
+            this.scroll[1] -= e.deltaY;
+            if (this.scroll[0] > 0) {
+                this.scroll[0] = 0;
             }
-            this.header.appendChild(div);
-            if (e.midi === 60) {
-                div.classList.add("select");
-                div.scrollIntoView();
+            if (this.scroll[1] > 0) {
+                this.scroll[1] = 0;
+            } else if (this.scroll[1] < (-22 * 87 + (window.innerHeight - 50))) {
+                this.scroll[1] = (-22 * 87 + (window.innerHeight - 50))
+            }
+            this.update();
+        });
+
+        this.canvas.addEventListener("pointermove", (e) => {
+            this.select = [
+                Math.floor((e.offsetX - this.scroll[0] - 180) / 22),
+                108 - Math.floor((e.offsetY - this.scroll[1] - 22) / 22)
+            ];
+
+            if (this.pressedS) {
+                this.notes[this.select[0]] = this.select[1];
+            } else if (this.pressedQ) {
+                this.notes[this.select[0]] = 0;
             }
 
-            e.element = div;
-            this.headers.push(div);
-            div.addEventListener("pointerenter", () => {
-                this.playNote(e.midi);
-            })
+            this.update();
+        });
+
+
+        this.canvas.addEventListener("paste", (ev) => {
+            ev.preventDefault();
+            const notes = JSON.parse(ev.clipboardData.getData("text"));
+            this.notes.splice(this.select[0], 0, ...notes);
+            this.update();
         })
+
+        this.canvas.addEventListener("cut", (ev) => {
+            ev.preventDefault();
+            ev.clipboardData.clearData();
+            ev.clipboardData.setData("text/x-notes", JSON.stringify(this.notes.splice(Math.min(this.current[0], this.select[0]), Math.abs(this.current[0] - this.select[0]) + 1)));
+
+            this.update();
+        })
+
+        this.canvas.addEventListener("copy", (ev) => {
+            ev.preventDefault();
+            ev.clipboardData.clearData();
+            ev.clipboardData.setData("text/x-notes", JSON.stringify(this.notes.slice(Math.min(this.current[0], this.select[0]) - 1, Math.max(this.current[0], this.select[0]))));
+        })
+
+
+
+        this.canvas.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            this.notes[this.select[0]] = 0;
+            this.update();
+        });
+
+        this.canvas.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            if (e.offsetY < 30) {
+                this.current[0] = this.select[0];
+                this.update();
+                return;
+            }
+            if (e.offsetX < 180) {
+                this.current[1] = this.select[1];
+                this.playNote(this.select[1], 1);
+                this.update();
+                return;
+            }
+            this.notes[this.select[0]] = this.select[1];
+            this.update();
+            this.playNote(this.select[1], 0.5);
+        });
 
         try {
             if (location.hash.length >= 2) {
@@ -324,7 +383,7 @@ const editor = {
                 this.pressedQ = true;
             } else if (e.code === ("ArrowDown")) {
                 e.preventDefault();
-                for (let i = this.currentC; i < this.notes.length; i++) {
+                for (let i = this.select[0]; i < this.notes.length; i++) {
                     if (this.notes[i] === 0) {
                         continue;
                     }
@@ -333,7 +392,7 @@ const editor = {
                 this.update();
             } else if (e.code === ("ArrowUp")) {
                 e.preventDefault();
-                for (let i = this.currentC; i < this.notes.length; i++) {
+                for (let i = this.select[0]; i < this.notes.length; i++) {
                     if (this.notes[i] === 0) {
                         continue;
                     }
@@ -342,14 +401,24 @@ const editor = {
                 this.update();
             } else if (e.code === ("ArrowRight")) {
                 e.preventDefault();
-                this.notes.splice(this.currentC, 0, 0);
+                this.notes.splice(this.select[0], 0, 0);
                 this.create(this.notes.pop());
                 this.update();
             } else if (e.code === ("ArrowLeft")) {
                 e.preventDefault();
-                this.notes.splice(this.currentC, 1);
+                this.notes.splice(this.select[0], 1);
                 this.notes[this.notes.length] = 0;
                 this.update();
+            } else if (e.code === ("KeyC") && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                navigator.clipboard.writeText(JSON.stringify(this.notes.slice(Math.min(this.current[0], this.select[0]), Math.max(this.current[0], this.select[0]) + 1)));
+            } else if (e.code === ("KeyV") && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                navigator.clipboard.readText().then(t => {
+                    const notes = JSON.parse(t);
+                    this.notes.splice(this.select[0] - 1, 0, ...notes);
+                    this.update();
+                })
             }
         });
         window.addEventListener("keyup", (e) => {
@@ -367,32 +436,137 @@ const editor = {
                 this.pressedQ = false;
             }
         });
-        this.update.lastNotes = [...this.notes];
+        this.update();
     },
     save() {
+        if (this.save.last && this.save.last.length === this.notes.length && this.notes.every((e, i) => e === this.save.last[i])) {
+            return;
+        }
+        console.log("save!");
         localStorage.setItem("_notes", JSON.stringify(this.notes));
+        this.save.last = [...this.notes]
     },
+
     update() {
-        // location.hash = "#" + this.notes.join("/");
+        const ctx = this.canvas.getContext("2d");
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
+        this.render_notes();
+        this.render_midi_headers();
+        this.render_time_headers();
+        this.render_highlight();
+        this.save();
+    },
+    render_notes() {
+        const ctx = this.canvas.getContext("2d");
+        ctx.resetTransform();
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        ctx.translate(this.scroll[0] + 180, this.scroll[1] + 22);
+
+        ctx.beginPath();
+        ctx.fillStyle = "purple";
+        ctx.strokeStyle = "#eee";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 88; i++) {
+            ctx.moveTo(0, i * 22);
+            ctx.lineTo(this.notes.length * 22 + 440, i * 22);
+        }
         for (let i = 0; i < this.notes.length; i++) {
+            ctx.moveTo(i * 22, 0);
+            ctx.lineTo(i * 22, 22 * 88);
             const note = this.notes[i];
-            const lnote = this.update.lastNotes[i];
-            if (this.update.lastNotes && (note === lnote)) {
-                continue;
-            }
-            if (note > 20) {
-                if (this.update.lastNotes && this.noteElements[i] && (typeof lnote !== "undefined") && lnote > 20) {
-                    document.querySelector(`body > div.editor > div > div:nth-child(${i + 2}) > div:nth-child(${110 - lnote})`).classList.remove("true");
-                }
-                document.querySelector(`body > div.editor > div > div:nth-child(${i + 2}) > div:nth-child(${110 - note})`).classList.add("true");
-            } else {
-                if (this.update.lastNotes && this.noteElements[i] && (typeof lnote !== "undefined") && lnote > 20) {
-                    document.querySelector(`body > div.editor > div > div:nth-child(${i + 2}) > div:nth-child(${110 - lnote})`).classList.remove("true");
-                }
+            if (note > 20 && note < 109) {
+                ctx.fillRect(i * 22 + 1, (108 - note) * 22 + 1, 20, 20);
             }
         }
-        this.update.lastNotes = [...this.notes];
-        this.save();
+        ctx.stroke();
+    },
+    render_highlight() {
+        const ctx = this.canvas.getContext("2d");
+        ctx.resetTransform();
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        ctx.beginPath();
+        ctx.translate(this.scroll[0] + 180, this.scroll[1] + 22);
+        ctx.fillStyle = "#f006";
+        if (this.select[1] > 20 && this.select[1] < 109) {
+            ctx.fillRect(-180, (108 - this.select[1]) * 22, 22 * this.notes.length + 180, 22);
+        }
+        ctx.fillRect(this.select[0] * 22, -22, 22, 22 * 88);
+
+        ctx.beginPath();
+        ctx.fillStyle = "#0f06";
+        if (this.current[1] > 20 && this.current[1] < 109) {
+            ctx.fillRect(-180, (108 - this.current[1]) * 22, 22 * this.notes.length + 180, 22);
+        }
+        ctx.fillRect(this.current[0] * 22, -22, 22, 22 * 88);
+    },
+    render_midi_headers() {
+        const ctx = this.canvas.getContext("2d");
+        ctx.resetTransform();
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        ctx.translate(0, this.scroll[1] + 22);
+
+        ctx.beginPath();
+        ctx.fillStyle = "#eeed"
+        ctx.fillRect(0, 0, 180, 88 * 22);
+
+        ctx.beginPath();
+        ctx.font = "16px 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace";
+        ctx.fillStyle = "#000"
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ddd";
+        for (let i = 0; i < MIDIS.length; i++) {
+            const e = MIDIS[87 - i];
+            ctx.fillText(e.eng[0] + e.octave + (e.eng[1] || ""), 5, i * 22 - 3 + 22);
+            ctx.fillText(e.name, 65, i * 22 - 3 + 22);
+            if (e.alt) {
+                ctx.fillText(e.alt, 125, i * 22 - 3 + 22);
+            }
+            ctx.moveTo(0, i * 22);
+            ctx.lineTo(180, i * 22);
+        }
+        ctx.moveTo(0, 88 * 22);
+        ctx.lineTo(180, 88 * 22);
+        ctx.stroke();
+    },
+    render_time_headers() {
+        const ctx = this.canvas.getContext("2d");
+        ctx.resetTransform();
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        ctx.translate(this.scroll[0] + 180, 0);
+
+        ctx.beginPath();
+        ctx.fillStyle = "#eeed"
+        ctx.fillRect(0, 0, this.notes.length * 22, 22);
+
+        ctx.beginPath();
+        ctx.font = "16px 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace";
+        ctx.fillStyle = "#000"
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ddd";
+        for (let i = 0; i < this.notes.length + 20; i++) {
+            if (!(i % 4)) {
+                ctx.fillText((i / 4) % 100 + "", i * 22 + 1, 20);
+            }
+            ctx.moveTo(i * 22, 0);
+            ctx.lineTo(i * 22, 22);
+        }
+        ctx.moveTo(0, 22);
+        ctx.lineTo(this.notes.length * 22, 22);
+        ctx.stroke();
+
+
+        ctx.resetTransform();
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        ctx.beginPath();
+        ctx.fillStyle = "#eee"
+        ctx.fillRect(0, 0, 180, 22);
+        ctx.font = "16px 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace";
+        ctx.fillStyle = "#000"
+        ctx.fillText("time", 125, 20);
+
     },
     create_callbacks: {
         pointerdown: function (current, j) {
@@ -430,54 +604,23 @@ const editor = {
         }
     },
     create(value = 0) {
-        const note = value;
-        const row = document.createElement("div");
-        row.className = "editor-content";
-
-        const el = document.createElement("div");
-        el.className = "editor-element fixed-row";
-        const current = this.notes.length;
-
-        if (!(this.notes.length % 4)) {
-            el.textContent = (this.notes.length / 4) % 100;
-        }
-        el.addEventListener("pointerdown", () => {
-            this.current = current;
-            this.currentCol(current);
-        })
-        row.appendChild(el);
-        const noteElements = { parent: null, elements: [] };
-        this.noteElements.push(noteElements);
-
-        for (let j = 87; j >= 0; j--) {
-            const el = document.createElement("div");
-            el.className = "editor-element";
-            if ((value - 21) === j) {
-                el.classList.add("true");
-            }
-            el.addEventListener("pointerdown", this.create_callbacks.pointerdown.bind(this, current, j));
-            el.addEventListener("contextmenu", this.create_callbacks.contextmenu.bind(this, current));
-            el.addEventListener("pointerenter", this.create_callbacks.pointerenter.bind(this, current, j));
-            el.addEventListener("pointerleave", this.create_callbacks.pointerleave.bind(this, current, j));
-            row.appendChild(el);
-            //noteElements.elements.push(el);
-        }
-        this.contents.appendChild(row);
-        this.notes.push(Math.min(108, Math.max(note, 0)));
+        this.notes.push(Math.min(108, Math.max(value, 0)));
     },
-    current: 0,
     play() {
         this.stop();
         const delay = 15000 / tempoValue;
         this.id = setInterval(() => {
-            this.currentCol(this.current);
-            if (this.notes[this.current] !== 0) {
-                this.playNote(this.notes[this.current], (delay / 1000) + 0.05);
+            this.current[1] = this.notes[this.current[0]];
+            this.scroll[0] += -22;
+            this.update();
+            if (this.notes[this.current[0]] !== 0) {
+                this.playNote(this.notes[this.current[0]], (delay / 1000) + 0.05);
             }
-            this.current++;
-            if (this.notes.length === this.current) {
+            this.current[0]++;
+            if (this.notes.length === this.current[0]) {
                 this.stop();
-                this.current = 0;
+                this.current[0] = 0;
+                this.update();
             }
         }, delay);
     },
@@ -486,42 +629,10 @@ const editor = {
             clearInterval(this.id);
         }
     },
-    currentR: 0,
-    selectRow(midi = 0) {
-        try { document.querySelector(".editor-element.select").classList.remove("select"); } catch { }
-        if (midi > 20) {
-            this.headers[108 - midi].classList.add("select");
-            this.currentR = midi - 21;
-        }
-    },
-    currentRow(midi = 0) {
-        try { document.querySelector(".editor-element.current").classList.remove("current"); } catch { }
-        if (midi > 20) {
-            this.headers[108 - midi].classList.add("current");
-        }
-    },
-    currentC: 0,
-    selectCol(col = 0) {
-        try { document.querySelector(".editor-content.select").classList.remove("select"); } catch { }
-        if (col !== -1) {
-            document.querySelector("body > div.editor > div > div:nth-child(" + (col + 2) + ")").classList.add("select");
-            this.currentC = col;
-        }
-    },
-    currentCol(col = 0) {
-        try { document.querySelector(".editor-content.current").classList.remove("current"); } catch { }
-        if (col !== -1) {
-            document.querySelector("body > div.editor > div > div:nth-child(" + (col + 2) + ")").classList.add("current");
-            document.querySelector("body > div.editor > div > div:nth-child(" + (col + 2) + ")").scrollIntoView({
-                block: 'nearest',
-            });
-        }
-    },
     playNote(midi, duration = 1) {
         if (midi === 0) {
             return;
         }
-        this.currentRow(midi);
 
         const oscillator = this.audioCtx.createOscillator();
         // 2. ゲインノード（音量調節）を作成

@@ -22,7 +22,8 @@ body {
     height: 100vh;
     background-color: #0008;
 }
-.overlay .dialog{
+
+.overlay .dialog {
     width: fit-content;
     padding: 10px;
     margin: auto;
@@ -113,74 +114,12 @@ body {
 .editor {
     width: 100vw;
     height: calc(100vh - 50px);
-    overflow: scroll;
-    border: #000 1px solid;
+    border-top: #000 1px solid;
     border-collapse: collapse;
 }
 
-.editor-contents {
-    user-select: none;
-    -webkit-user-select: none;
-    display: flex;
-    flex-direction: row;
-    width: max-content;
-    --height: 22px;
-    --width: 22px;
-}
-
-.editor-content {
-    flex-direction: column;
-    border-collapse: collapse;
-}
-
-.editor-content.select {
-    background-color: lightsalmon !important;
-}
-
-.editor-content.current {
-    background-color: lightgreen !important;
-}
-
-.fixed-row {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: #eee;
-}
-
-.fixed-col {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    background: #eee;
-    --width: 180px
-}
-
-.fixed-col .editor-element {
-    display: flex;
-    flex-direction: row;
-}
-
-.fixed-col .editor-element div {
-    width: 60px;
-    height: 22px;
-}
-
-.editor-element {
-    height: var(--height);
-    width: var(--width);
-    border: #ddd 1px solid;
-    border-collapse: collapse;
-}
-
-.editor-element.true {
-    background-color: purple !important;
-}
-
-.editor-element.select {
-    background-color: lightsalmon !important;
-}
-
-.editor-element.current {
-    background-color: lightgreen !important;
+.editor-canvas {
+    background-color: #fff;
+    width: 100vw;
+    height: calc(100vh - 51px);
 }
