@@ -259,20 +259,35 @@ const editor = {
             this.scroll[0] -= e.deltaX;
             this.scroll[1] -= e.deltaY;
             if (this.scroll[0] > 0) {
+                if (this.scroll[0] === 0) {
+                    return;
+                }
                 this.scroll[0] = 0;
             }
             if (this.scroll[1] > 0) {
+                if (this.scroll[1] === 0) {
+                    return;
+                }
                 this.scroll[1] = 0;
             } else if (this.scroll[1] < (-22 * 87 + (window.innerHeight - 50))) {
+                if (this.scroll[1] === (-22 * 87 + (window.innerHeight - 50))) {
+                    return;
+                }
                 this.scroll[1] = (-22 * 87 + (window.innerHeight - 50))
             }
             this.update();
         });
 
         this.canvas.addEventListener("pointermove", (e) => {
+            let sv = 108 - Math.floor((e.offsetY - this.scroll[1] - 22) / 22)
+            if (sv > 108) {
+                sv = 108;
+            } else if (sv < 21) {
+                sv = 21;
+            }
             this.select = [
                 Math.floor((e.offsetX - this.scroll[0] - 180) / 22),
-                108 - Math.floor((e.offsetY - this.scroll[1] - 22) / 22)
+                sv
             ];
 
             if (this.pressedS) {
@@ -315,6 +330,7 @@ const editor = {
         });
 
         this.canvas.addEventListener("pointerdown", (e) => {
+
             e.preventDefault();
             if (e.offsetY < 30) {
                 this.current[0] = this.select[0];
@@ -450,13 +466,13 @@ const editor = {
     update() {
         const ctx = this.canvas.getContext("2d");
         ctx.resetTransform();
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.render_notes();
         this.render_midi_headers();
         this.render_time_headers();
         this.render_highlight();
         this.save();
+
     },
     render_notes() {
         const ctx = this.canvas.getContext("2d");
